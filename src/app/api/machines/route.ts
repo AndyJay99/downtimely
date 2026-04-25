@@ -58,12 +58,7 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
   try {
-    const body = await req.json()
-    const { businessId, name, machineType } = body as {
-      businessId?: string
-      name?: string
-      machineType?: string
-    }
+    const { businessId, name, machineType } = await req.json()
 
     if (!businessId || !name || !machineType) {
       return NextResponse.json(
@@ -105,15 +100,11 @@ export async function POST(req: Request) {
 
 export async function PATCH(req: Request) {
   try {
-    const body = await req.json()
-    const { id, name } = body as {
-      id?: string
-      name?: string
-    }
+    const { id, name, machineType } = await req.json()
 
-    if (!id || !name) {
+    if (!id || !name || !machineType) {
       return NextResponse.json(
-        { error: 'Machine id and name are required.' },
+        { error: 'Machine id, name, and machineType are required.' },
         { status: 400 }
       )
     }
@@ -125,6 +116,7 @@ export async function PATCH(req: Request) {
       .from('machines')
       .update({
         name,
+        machine_type: machineType,
         qr_slug: qrSlug,
       })
       .eq('id', id)
@@ -157,10 +149,7 @@ export async function DELETE(req: Request) {
 
     const supabaseAdmin = getSupabaseAdmin()
 
-    const { error } = await supabaseAdmin
-      .from('machines')
-      .delete()
-      .eq('id', id)
+    const { error } = await supabaseAdmin.from('machines').delete().eq('id', id)
 
     if (error) {
       return NextResponse.json(

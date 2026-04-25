@@ -12,16 +12,27 @@ type Machine = {
   active?: boolean
 }
 
+const machineTypes = [
+  { value: 'washer', label: 'Washer' },
+  { value: 'dryer', label: 'Dryer' },
+  { value: 'dog-wash', label: 'Dog Wash' },
+  { value: 'coin-machine', label: 'Coin Machine' },
+  { value: 'other', label: 'Other' },
+]
+
 export default function MachinesPage() {
   const [businessId, setBusinessId] = useState('')
   const [machines, setMachines] = useState<Machine[]>([])
   const [name, setName] = useState('')
   const [machineType, setMachineType] = useState('washer')
   const [loading, setLoading] = useState(false)
+
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editingName, setEditingName] = useState('')
+  const [editingType, setEditingType] = useState('washer')
   const [savingId, setSavingId] = useState<string | null>(null)
   const [deletingId, setDeletingId] = useState<string | null>(null)
+
   const [message, setMessage] = useState('')
   const [isError, setIsError] = useState(false)
 
@@ -51,7 +62,8 @@ export default function MachinesPage() {
 
         setMachines(data.machines || [])
       } catch (error) {
-        console.error(error)
+        setIsError(true)
+        setMessage(error instanceof Error ? error.message : 'Failed to load machines.')
       }
     }
 
@@ -75,11 +87,7 @@ export default function MachinesPage() {
       const res = await fetch('/api/machines', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          businessId,
-          name,
-          machineType,
-        }),
+        body: JSON.stringify({ businessId, name, machineType }),
       })
 
       const text = await res.text()
@@ -110,6 +118,7 @@ export default function MachinesPage() {
   function startEditing(machine: Machine) {
     setEditingId(machine.id)
     setEditingName(machine.name)
+    setEditingType(machine.machine_type)
     setMessage('')
     setIsError(false)
   }
@@ -117,6 +126,7 @@ export default function MachinesPage() {
   function cancelEditing() {
     setEditingId(null)
     setEditingName('')
+    setEditingType('washer')
   }
 
   async function saveEdit(id: string) {
@@ -137,6 +147,7 @@ export default function MachinesPage() {
         body: JSON.stringify({
           id,
           name: editingName.trim(),
+          machineType: editingType,
         }),
       })
 
@@ -159,6 +170,7 @@ export default function MachinesPage() {
 
       setEditingId(null)
       setEditingName('')
+      setEditingType('washer')
       setMessage('Machine updated successfully.')
     } catch (error) {
       setIsError(true)
@@ -169,6 +181,9 @@ export default function MachinesPage() {
   }
 
   async function deleteMachine(id: string) {
+    const confirmed = window.confirm('Are you sure you want to delete this machine?')
+    if (!confirmed) return
+
     setDeletingId(id)
     setMessage('')
     setIsError(false)
@@ -198,6 +213,7 @@ export default function MachinesPage() {
       if (editingId === id) {
         setEditingId(null)
         setEditingName('')
+        setEditingType('washer')
       }
 
       setMessage('Machine removed successfully.')
@@ -247,11 +263,11 @@ export default function MachinesPage() {
                   onChange={(e) => setMachineType(e.target.value)}
                   className="mt-1 w-full rounded-xl border border-white/10 bg-black/20 px-3 py-3 text-sm text-white outline-none focus:border-blue-400"
                 >
-                  <option value="washer">Washer</option>
-                  <option value="dryer">Dryer</option>
-                  <option value="dog-wash">Dog Wash</option>
-                  <option value="coin-machine">Coin Machine</option>
-                  <option value="other">Other</option>
+                  {machineTypes.map((type) => (
+                    <option key={type.value} value={type.value}>
+                      {type.label}
+                    </option>
+                  ))}
                 </select>
               </div>
 
@@ -288,6 +304,21 @@ export default function MachinesPage() {
                             onChange={(e) => setEditingName(e.target.value)}
                             className="mt-1 w-full rounded-xl border border-white/10 bg-black/20 px-3 py-3 text-sm text-white outline-none focus:border-blue-400"
                           />
+                        </div>
+
+                        <div>
+                          <label className="block text-sm text-slate-300">Machine type</label>
+                          <select
+                            value={editingType}
+                            onChange={(e) => setEditingType(e.target.value)}
+                            className="mt-1 w-full rounded-xl border border-white/10 bg-black/20 px-3 py-3 text-sm text-white outline-none focus:border-blue-400"
+                          >
+                            {machineTypes.map((type) => (
+                              <option key={type.value} value={type.value}>
+                                {type.label}
+                              </option>
+                            ))}
+                          </select>
                         </div>
 
                         <div className="flex flex-wrap gap-2">
