@@ -41,6 +41,7 @@ export async function POST(req: Request) {
       )
     }
 
+    // get machine
     const { data: machine, error: machineError } = await supabase
       .from('machines')
       .select('id, name, machine_type, business_id')
@@ -54,6 +55,7 @@ export async function POST(req: Request) {
       )
     }
 
+    // insert report
     const { error: reportError } = await supabase.from('fault_reports').insert({
       machine_id: machineId,
       business_id: machine.business_id,
@@ -71,6 +73,7 @@ export async function POST(req: Request) {
       )
     }
 
+    // get recipients
     const { data: recipients, error: recipientError } = await supabase
       .from('alert_recipients')
       .select('email')
@@ -87,7 +90,11 @@ export async function POST(req: Request) {
     const to = (recipients || []).map((r) => r.email).filter(Boolean)
 
     if (to.length > 0) {
-      const reportedAt = new Date().toLocaleString('en-AU')
+      const reportedAt = new Date().toLocaleString('en-AU', {
+        timeZone: 'Australia/Melbourne',
+        dateStyle: 'medium',
+        timeStyle: 'short',
+      })
 
       const customerDetailsText =
         customerName || customerPhone || customerEmail
