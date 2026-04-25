@@ -15,6 +15,18 @@ function getSupabaseAdmin() {
   return createClient(supabaseUrl, serviceRoleKey)
 }
 
+function formatMelbourneTime(date: Date) {
+  return new Intl.DateTimeFormat('en-AU', {
+    timeZone: 'Australia/Melbourne',
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
+  }).format(date)
+}
+
 export async function POST(req: Request) {
   try {
     const resendApiKey = process.env.RESEND_API_KEY
@@ -41,7 +53,9 @@ export async function POST(req: Request) {
       )
     }
 
-    // get machine
+    const reportedAtDate = new Date()
+    const reportedAt = formatMelbourneTime(reportedAtDate)
+
     const { data: machine, error: machineError } = await supabase
       .from('machines')
       .select('id, name, machine_type, business_id')
@@ -55,7 +69,6 @@ export async function POST(req: Request) {
       )
     }
 
-    // insert report
     const { error: reportError } = await supabase.from('fault_reports').insert({
       machine_id: machineId,
       business_id: machine.business_id,
@@ -64,6 +77,7 @@ export async function POST(req: Request) {
       customer_name: customerName || null,
       customer_phone: customerPhone || null,
       customer_email: customerEmail || null,
+      created_at: reportedAtDate.toISOString(),
     })
 
     if (reportError) {
@@ -73,7 +87,6 @@ export async function POST(req: Request) {
       )
     }
 
-    // get recipients
     const { data: recipients, error: recipientError } = await supabase
       .from('alert_recipients')
       .select('email')
@@ -90,12 +103,6 @@ export async function POST(req: Request) {
     const to = (recipients || []).map((r) => r.email).filter(Boolean)
 
     if (to.length > 0) {
-      const reportedAt = new Date().toLocaleString('en-AU', {
-        timeZone: 'Australia/Melbourne',
-        dateStyle: 'medium',
-        timeStyle: 'short',
-      })
-
       const customerDetailsText =
         customerName || customerPhone || customerEmail
           ? `
@@ -116,7 +123,7 @@ Machine: ${machine.name}
 Type: ${machine.machine_type}
 Issue: ${issue}
 Status: OPEN
-Reported: ${reportedAt}${customerDetailsText}`,
+Reported: ${reportedAt} Melbourne time${customerDetailsText}`,
         html: `
           <div style="font-family: Arial, sans-serif; line-height: 1.5; color: #111;">
             <h2 style="margin-bottom: 8px;">Machine fault reported</h2>
@@ -126,7 +133,7 @@ Reported: ${reportedAt}${customerDetailsText}`,
               <p><strong>Type:</strong> ${machine.machine_type}</p>
               <p><strong>Issue:</strong> ${issue}</p>
               <p><strong>Status:</strong> OPEN</p>
-              <p><strong>Reported:</strong> ${reportedAt}</p>
+              <p><strong>Reported:</strong> ${reportedAt} Melbourne time</p>
             </div>
 
             ${
