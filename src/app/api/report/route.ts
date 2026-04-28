@@ -1,3 +1,4 @@
+console.log("DOWNTIMELY NEW VERSION TEST")
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { Resend } from 'resend'
